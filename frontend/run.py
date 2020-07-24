@@ -1,141 +1,185 @@
-#Author: Klaus
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+This is a python script to see how a Country is performing the managment of the COVID-19 cases
+"""
 
-from selenium import webdriver
-import time
-import re
 import requests
-from selenium.webdriver.chrome.options import Options
+import pandas as pd
+from datetime import date, timedelta
 import matplotlib.pyplot as plt
-
-
-class covidData:
-    def __init__(self):
-        self.chrome_options = Options()
-        self.chrome_options.add_argument("--headless")
-        self.driver = webdriver.Chrome(options=self.chrome_options)
-        self.driver.set_window_size(1000, 30000)
-        self.country=None
-        self.countryCode = {}
-        self.getCountryCode()
-        self.countryCase = {}
-        self.date = []
-        self.newAdd = []
-        self.newDeath = []
-        self.totalCas=[]
-        self.totalRec=[]
-        self.totalDea=[]
-        self.countryNews = {}
-        self.getNews()
-
-    def getCountryCode(self):
-        self.driver.get('https://thevirustracker.com/api#indexpage')
-        countries = self.driver.find_elements_by_xpath("//table[@id='indexpage']/tbody/tr/td")
-        for i in range(len(countries)//3):
-            self.countryCode[countries[i*3].text] = countries[1+(i*3)].text[:2]
-
-    def showCountry(self):
-        for cc in self.countryCode:
-            print(cc + ': '+self.countryCode[cc])
-
-    def getTimeline(self,country):
-        self.country=country
-        html = requests.get('https://api.thevirustracker.com/free-api?countryTimeline={}'.format(self.countryCode[country])).text
-        self.date = re.findall(r'\d+/\d+/\d+',html)
-        self.newAdd = re.findall(r'"new_daily_cases":(-\d+|\d+)',html)
-        self.newDeath = re.findall(r'"new_daily_deaths":(-\d+|\d+)',html)
-        self.totalCas = re.findall(r'"total_cases":(-\d+|\d+)',html)
-        self.totalRec=re.findall(r'"total_recoveries":(-\d+|\d+)',html)
-        self.totalDea=re.findall(r'"total_deaths":(-\d+|\d+)',html)
-        i = len(self.date)-1
-        while i>0:
-            if len(self.date)==len(self.newAdd)==len(self.newDeath)==len(self.totalCas)==len(self.totalRec)==len(self.totalDea):
-                print("Date: {}; New case: {}; New death: {}; total: {}; total recovery: {}; total death:{}".format\
-                          (self.date[i],self.newAdd[i],self.newDeath[i],self.totalCas[i],self.totalRec[i],self.totalDea[i]))
-            i=i-1
-
-    def getNews(self):
-        self.driver.get('https://www.imf.org/en/Topics/imf-and-covid19/Policy-Responses-to-COVID-19')
-        countries = self.driver.find_elements_by_xpath("//h3")
-        for country in countries:
-            text = country.text.split(",")[0]
-            new = self.driver.find_elements_by_xpath("//h3[contains(text(),'{}')]/following-sibling::p".format(text))
-            new = new[0].text.replace(".",".\n")
-            self.countryNews[(country.text).split(",")[0]] = new
-
-    def showNews(self,country):
-        if country=='USA':
-            country='United States of America'
-        print(self.countryNews[country])
-
-    def drawGraph(self,country,dataType):
-        self.getTimeline(country)
-        x = self.date
-        if dataType =='case':
-            y=self.totalCas
-        elif dataType =='recover':
-            y=self.totalRec
-        elif dataType == 'death':
-            y=self.totalDea
-        else:
-            return "Error Data Type"
-        plt.plot(x,y)
-        plt.xlabel('Timeslot')
-        plt.ylabel('Total Case')
-        plt.title(country + '-' + dataType)
-        plt.axis('off')
-        plt.show()
+import numpy as np
+from countryinfo import CountryInfo
+import os
 
 
 
-if __name__ == '__main__':
-    help = '---------------------------------------------------------------------------------------\n' \
-           'select options:\n' \
-           '1.help                          - show help interface. Input help can get this page as well\n' \
-           '2.get $country                  - input the country you want to get data\n' \
-           '3.show countries                - show available countries and Code\n' \
-           '4.get country news              - get covid news of a country\n' \
-           '5.get data graph                - draw data graph of data\n' \
-           '6.exit                          - exit program. Input exit can quit\n'
-    print('Initializing, please wait')
-    a = covidData()
-    print(help)
-    command = input('Please input command:\n')
-    while command != 'exit' or command!='6':
-        if command=='1' or command=='help':
-            print(help)
-        elif command == 'show countries' or command=='3':
-            a.showCountry()
-        elif command=='2':
-            country=input("please input a country:\n")
-            condition=True
-            while condition:
-                try:
-                    a.getTimeline(country)
-                    condition=False
-                except:
-                    print('Please input a valid country name')
-                    command = input('Please input a country:\n')
+def make_graph(country, start_date, show_score = False):
+    header = ['Province/State','Country/Region','Last Update','Confirmed','Deaths','Recovered','Latitude','Longitude']
+    countries_split_in_provinces =  ['US', 'China', 'Canada', 'Australia']
+    raw_link = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{}.csv'
+    end_date = date.today()
+    delta = end_date - start_date
+    graph_path = os.path.join(os.path.dirname(__file__), 'graph')
+    data = list()
+    
+    if show_score:
+        try:
+            population = CountryInfo(country).population()
+        except:
+            country_correction = {'US': 'United States'}
+            population = CountryInfo(country_correction[country]).population()
+    
+    for i in range(delta.days + 1):
+        day = (start_date + timedelta(days=i)).strftime('%m-%d-%Y')
+        r = requests.get(raw_link.format(day))
+        
+        if r.status_code == 404:
+            break
+        
+        if country in countries_split_in_provinces:
+            sub_total = {'posit':0, 'death':0, 'recov':0}
+        
+        rows = r.text.splitlines()
+        for row in rows:
+            if country in row:
+                row_slice = row.split(',')
+                
+                # Some country have a comma that creates troubble
+                if len(row_slice) == 7 or len(row_slice) == 9:
+                    row_slice[0:2] = [''.join(row_slice[0:2])]
 
-        elif command == '4':
-            country = input("please input a country:\n")
-            condition = True
-            while condition:
-                try:
-                    a.showNews(country)
-                    condition = False
-                except:
-                    print('Please input a valid country name')
-                    command = input('Please input a country:\n')
-        elif command == '5':
-            country = input("Please input a country:\n")
-            dataType = input("Please select a data type-('case','recover','death'):\n")
-            while True:
-                result = a.drawGraph(country, dataType)
-                if result == 'Error Data Type':
-                    print(result)
-                    dataType = input("Please select a data type-('case','recover','death')")
-                else:
-                    break
+                if country in countries_split_in_provinces:
+                    sub_total['posit'] += int(row_slice[3])
+                    sub_total['death'] += int(row_slice[4])
+                    sub_total['recov'] += int(row_slice[5])
 
-        command = input('Please input command:\n')
-    print('Enjoy the program')
+        if country in countries_split_in_provinces:
+            row_slice[3]= sub_total['posit']
+            row_slice[4]= sub_total['death']
+            row_slice[5]= sub_total['recov']
+        
+        try:
+            data.append(row_slice)
+        except:
+            pass
+    
+    df = pd.DataFrame(data, columns=header)
+    #df = df.drop(columns= ['Province/State','Country/Region','Latitude', 'Longitude'])
+    df = df.drop(columns= ['Latitude', 'Longitude'])
+    
+    df['Confirmed'] = df['Confirmed'].astype('int')
+    df['Recovered'] = df['Recovered'].astype('int')
+    df['Deaths'] = df['Deaths'].astype('int')
+    
+    for i in range(1, df.shape[0]):
+        if i == 1:
+            df.at[0, 'Positives'] = df.at[0,'Confirmed'] - (df.at[0,'Recovered'] + df.at[0,'Deaths'])
+            df.at[0, 'Last Update'] = df.at[0,'Last Update'][5:10]
+            
+        # Today
+        t_confirmed = df.at[i,'Confirmed']
+        t_recovered = df.at[i,'Recovered']
+        t_deaths = df.at[i,'Deaths']
+        t_positives = t_confirmed - (t_recovered + t_deaths)
+        df.at[i, 'Positives'] = t_positives
+        
+        # Yesterday
+        y_confirmed = df.at[i-1,'Confirmed']
+        y_recovered = df.at[i-1,'Recovered']
+        y_deaths = df.at[i-1,'Deaths']
+        
+        # Daily
+        d_confirmed = t_confirmed - y_confirmed
+        df.at[i, 'D-Confirmed'] = d_confirmed
+        d_recovered = t_recovered - y_recovered
+        df.at[i, 'D-Recovered'] = d_recovered
+        d_deaths = t_deaths - y_deaths
+        df.at[i, 'D-Deaths'] = d_deaths
+        
+        df.at[i, 'Last Update'] = df.at[i,'Last Update'][5:10]
+        
+        if show_score:
+            # Edits for the score calulation
+            if d_recovered <= 0: d_recovered = 0.1
+            if d_confirmed <= 0: d_confirmed = 0.1
+            if d_deaths <= 0: d_deaths = 0.1
+            df.at[i, 'Score'] = round((d_recovered/t_positives)/((d_confirmed/(population/10000)) * (d_deaths/t_positives)))    
+    
+    df = df.fillna(0)
+    df['Positives'] = df['Positives'].astype('int')
+    df['D-Confirmed'] = df['D-Confirmed'].astype('int')
+    df['D-Recovered'] = df['D-Recovered'].astype('int')
+    df['D-Deaths'] = df['D-Deaths'].astype('int')
+    if show_score:
+        df['Score'] = df['Score'].astype('int')
+    
+    #print(df.to_string())
+    
+    bar_width = 0.2
+    opacity = 0.7
+    steps = bar_width * 3 + bar_width # between a group of three bars
+    index = np.arange(0, df.shape[0]/(1/steps), steps) # position of the x-element on the plot
+    
+    fig, ax1 = plt.subplots()
+    plt.xticks(index, df['Last Update'].to_list(), rotation=45)
+    plt.xlabel('Date')
+    plt.title('COVID-19 Infections in {}'.format(country))
+    
+    # Axis 1: Cases
+    ax1.set_ylabel('Cases')
+    ax1.bar(index, df['D-Confirmed'].to_list(), bar_width, color='b', alpha=opacity, label='Confirmed')
+    ax1.bar(index + bar_width, df['D-Recovered'].to_list(), bar_width, color='g', alpha=opacity, label='Recovered')
+    ax1.bar(index + bar_width * 2, df['D-Deaths'].to_list(), bar_width, color='r', alpha=opacity, label='Deaths')
+    
+    try:
+        if not os.path.exists(graph_path):
+            os.mkdir(graph_path)
+    except OSError:
+        print('Creation of the directory failed')
+        
+    if show_score:
+        # Axis 2: Score
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Score')
+        ax2.plot(index, df['Score'].to_list(), color='y', alpha=opacity, label='Score')
+    
+        # Create a single legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        plt.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+        plt.savefig(os.path.join(graph_path, '{}_{}_score'.format(country, date.today())))
+    else:
+        ax1.legend(loc='upper left')
+        plt.savefig(os.path.join(graph_path,'{}_{}'.format(country, date.today())))
+        
+    plt.show()
+    print('Graph for {} updated at {} created'.format(country, date.today()))
+
+def main():
+    start_date = date(2020, 2, 24)   # start date for the graphs
+
+    make_graph('Country', start_date)
+    make_graph('King County', start_date)
+    make_graph('Westchester County', start_date)
+    
+    make_graph('Italy', start_date)
+    make_graph('Iran', start_date)
+    make_graph('France', start_date)
+    make_graph('South Korea', start_date)
+    
+    make_graph('China', start_date)
+    make_graph('Hubei', start_date)
+    make_graph('Zhejiang', start_date)
+    
+    make_graph('Canada', start_date)
+    make_graph('Toronto', start_date)
+    
+    make_graph('Australia', start_date)
+
+    make_graph('Italy', start_date, True)
+    make_graph('China', start_date, True)
+
+if __name__ == "__main__":
+    main()
+    
