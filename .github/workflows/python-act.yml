@@ -18,7 +18,7 @@ jobs:
         pip install -r covid19/requirements.txt
     - name: Process Data
       run: |
-        python covid19/process.py
+        python covid19/world.py
     - name: Commit files
       run: |
         git config --local user.email "action@github.com"
