@@ -180,7 +180,7 @@ tab['Rank'] = tab['Rank'].add(1)
 tab = tab[['Rank', 'Country', 'COVID-free days', 'Total cases in the last 14 days']]       
 s = tab.style.apply(highlighter, axis = 1).set_table_styles(styles).hide_index()
 try:        
-    with open(f'World.html', 'w', encoding="utf-8") as out:
+    with open(f'Worldranking.html', 'w', encoding="utf-8") as out:
         content = top + s.render() + bottom
         out.write(content)
 except Exception as e:
