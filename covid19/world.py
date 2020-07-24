@@ -1,486 +1,187 @@
-from dataflows import Flow, load, unpivot, find_replace, set_type, dump_to_path
-from dataflows import update_package, update_resource, update_schema, join
-from dataflows import join_with_self, add_computed_field, delete_fields
-from dataflows import checkpoint, duplicate, filter_rows, sort_rows, printer
+#!/usr/bin/env python
+# coding: utf-8
 
-BASE_URL = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/'
-CONFIRMED = 'time_series_covid19_confirmed_global.csv'
-DEATH = 'time_series_covid19_deaths_global.csv'
-RECOVERED = 'time_series_covid19_recovered_global.csv'
-CONFIRMED_US = 'time_series_covid19_confirmed_US.csv'
-DEATH_US = 'time_series_covid19_deaths_US.csv'
-REFERENCE = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv'
+import pandas as pd
+import numpy as np
 
-def to_normal_date(row):
-    old_date = row['Date']
-    month, day, year = row['Date'].split('-')
-    day = f'0{day}' if len(day) == 1 else day
-    month = f'0{month}' if len(month) == 1 else month
-    row['Date'] = '-'.join([day, month, year])
+#JHU
+df = pd.read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
+focus = df.copy().drop(['Lat','Long'], axis=1).set_index(['Country/Region','Province/State'])
+confirm = focus.groupby('Country/Region').sum().T
 
-unpivoting_fields = [
-    { 'name': '([0-9]+\/[0-9]+\/[0-9]+)', 'keys': {'Date': r'\1'} }
-]
+confirm.index = pd.to_datetime(confirm.index)
 
-extra_keys = [{'name': 'Date', 'type': 'string'} ]
-extra_value = {'name': 'Case', 'type': 'number'}
+date = pd.to_datetime("today").strftime('_%m_%d')
+#print('Latest update time is:',date)
+
+confirm['time'] = pd.to_datetime(confirm.index)
+confirm.index = confirm.time.dt.strftime('%m/%d')
+confirm.drop('time', axis=1, inplace=True)
 
 
-def pivot_key_countries(package):
-    key_countries = ['China', 'US', 'United_Kingdom', 'Italy', 'France', 'Germany', 'Spain', 'Iran']
-    for country in key_countries:
-        package.pkg.descriptor['resources'][1]['schema']['fields'].append(dict(
-            name=country,
-            type='integer',
-            description='Cumulative total confirmed cases to date.'
-        ))
-    yield package.pkg
-    resources = iter(package)
+do_not_include = ['Antigua and Barbuda', 'Angola', 'Benin', 'Botswana', 
+                  'Burundi', 'Cabo Verde', 'Chad', 'Comoros', 
+                  'Congo (Brazzaville)', 'Congo (Kinshasa)', "Cote d'lvoire", 'Central African Republic',
+                  'Diamond Princess', 'Dominica', 'Equatorial Guinea',
+                  'Eritrea', 'Ecuador', 'Eswatini','Ethiopia', 'Gabon', 
+                  'Gambia', 'Ghana', 'Grenada', 'Guinea', 'Guinea-Bissau',
+                  'Guyana', 'Laos', 'Lesotho', 'Liberia', 'Libya', 'Madagascar',
+                  'Malawi', 'Maldives', 'Mauritania', 'Mozambique',
+                  'MS Zaandam', 'Namibia', 'Nicaragua', 'Papua New Guinea',
+                  'Rwanda', 'Saint Lucia', 
+                  'Saint Vincent and the Grenadines', 'Sao Tome and Principe',
+                  'Seychelles', 'Sierra Leone', 'South Sudan', 'Suriname', 'Syria', 
+                  'Tanzania', 'Togo', 'Uganda', 'West Bank and Gaza',
+                  'Western Sahara', 'Yemen', 'Zambia', 'Zimbabwe']
 
-    data_by_province = next(resources)
-    yield data_by_province
+cols = ['Country','COVID-free days','Total cases in the last 14 days']
+to_ca = []
 
-    data_by_key_countries = next(resources)
-    def process_rows(rows):
-        new_row = dict(Date=None, China=None, US=None, United_Kingdom=None, Italy=None, France=None, Germany=None, Spain=None, Iran=None)# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[:]):
 
-name: Update World Country Rankings
+    
+    #choosing offsets
+    if country == 'China':
+        offset = 0
+    elif country == 'Korea, South':
+        offset = 10
+    else:
+        offset = 30    
 
-on:
-  #push:
-    #branches: [ master ]
-  schedule:
-    - cron: '0 */6 * * *'
 
-jobs:
-  build:
 
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@master
-      with:
-        persist-credentials: false 
-        fetch-depth: 0 
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Process Data
-      run: |
-        python World/World_ranking.py
+    #leaving out countries which haven't been vetted, or have bad data
+    if country in do_not_include:
+        continue
         
-    - name: commit files
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git commit --allow-empty -m "Auto-update of the data packages" -a   
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        for row in rows:
-            country = row['Country'].replace(' ', '_')
-            if country in key_countries:
-                new_row['Date'] = row['Date']
-                new_row[country] = row['Confirmed']
-            if None not in new_row.values():
-                yield new_row
-                new_row = dict(Date=None, China=None, US=None, United_Kingdom=None, Italy=None, France=None, Germany=None, Spain=None, Iran=None)
+           
+    focus =  confirm.loc[:,[country]].copy()[offset:]
+    focus['new'] = focus[country] - focus[country].shift(1)
+    
+    # Correcting some data
+    if country == 'France':
+        focus.at['06/02', 'new'] = 0
+        focus.at['06/04', 'new'] = 767
+        
+    # New Zealand cases are all in managed isolation since 06/17
+    if country == 'New Zealand':
+        focus['new'].loc['06/17':] = 0
+    
+   
+    #correcting country names
+    if country == 'Taiwan*':
+        country = 'Taiwan'
+    if country == 'Korea, South':
+        country = 'South Korea'
+    if country == 'United Arab Emirates':
+        country = 'U.A.E.'
+    if country == 'Bosnia and Herzegovina':
+        country = 'Bosnia'
 
-    yield process_rows(data_by_key_countries)
+  
+    i = len(focus['new']) -1
+    c = 0
+    while i > 0:
+        if focus['new'][i] <= 0:
+            c = c + 1
+        else:
+            i = 0
+        i = i - 1
+    total=int(focus['new'][len(focus)-14:].sum()) #compute total cases
+    if total < 0:
+        total = 0
+    to_ca.append((country,
+                  c,
+                  total))
+    
+fin = pd.DataFrame(to_ca,columns = cols)
+fin['week'] = fin['COVID-free days'].gt(13) 
+tab = fin.sort_values(['week'], ascending=[False])
+tab_t = tab[tab['week']==True]
+tab_f = tab[tab['week']==False]
+tab_f = tab_f.sort_values(['Total cases in the last 14 days','COVID-free days'], ascending = [True,False])
+tab_t = tab_t.sort_values(['COVID-free days','Total cases in the last 14 days'], ascending = [False,True])
+tab = tab_t.append(tab_f)
+tab = tab.drop(['week'], axis=1)
 
-    data_by_country = next(resources)
-    yield data_by_country
+def highlighter(s):
+    val_1 = s['COVID-free days']
+    val_2 = s['Total cases in the last 14 days']
+    r=''
+    try:
+        if val_1>=14:
+            r = 'background-color: #018001;'
+        elif 20>=val_2>=0 :
+            r = 'background-color: #02be02;'
+        elif 200>=val_2 >=21:
+            r = 'background-color: #ffff01;'
+        elif 1000>=val_2 >= 201:
+            r = 'background-color: #ffa501;'
+        elif 20000>=val_2 >= 1001:
+            r = 'background-color: #ff3434;'
+        elif val_2 > 20001:
+            r = 'background-color: #990033;'
+    except Exception as e:
+        r = 'background-color: white'
+    return [r]*len(s)
 
-    worldwide = next(resources)
-    yield worldwide
-
-    us_confirmed = next(resources)
-    yield us_confirmed
-    us_deaths = next(resources)
-    yield us_deaths
+def hover(hover_color="#ffff99"):
+    return dict(selector="tbody tr:hover td, tbody tr:hover th",
+                props=[("background-color", "rgba(66, 165, 245, 0.2) !important")])
 
 
-def calculate_increase_rate(package):
-    package.pkg.descriptor['resources'][1]['schema']['fields'].append(dict(
-        name='Increase rate',
-        type='number',
-        description='Inrease rate from the previous day in percentage.'
-    ))
-    yield package.pkg
-    resources = iter(package)
-    first_resource = next(resources)
-    yield first_resource
+top = """
+<html>
+<head>
+<style>
+    h2 {
+        text-align: center;
+        font-family: Helvetica, Arial, sans-serif;
+    }
+    table { 
+        margin-left: auto;
+        margin-right: auto;
+    }
+    table, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 5px;
+        text-align: center;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 90%;
+    }
+    table tbody tr:hover {
+        background-color: #dddddd;
+    }
+    /*
+    table tbody tr:hover td, table tbody tr:hover th {
+  background-color: #dddddd !important;
+    }
+    /*
+    .wide {
+        width: 90%; 
+    }
+</style>
+</head>
+<body>
+"""
+bottom = """
+</body>
+</html>
+"""
 
-    worldwide_data = next(resources)
-    def process_rows(rows):
-        previous_row = None
-        for row in rows:
-            if previous_row:
-                row['Increase rate'] = (row['Confirmed'] - previous_row['Confirmed']) / previous_row['Confirmed'] * 100
-            previous_row = row
-            yield row
-    yield process_rows(worldwide_data)
 
-    us_confirmed = next(resources)
-    yield us_confirmed
-    us_deaths = next(resources)
-    yield us_deaths
 
-def fix_canada_recovered_data(rows):
-    expected = {
-        'Date': None,
-        'Province/State': None,
-        'Country/Region': None,
-        'Lat': None,
-        'Long': None,
-        'Case': None,
-        'Confirmed': None,
-        'Recovered': None
-        }
-    for row in rows:
-        if row.get('Country/Region') == 'Canada' and \
-            row.get('Province/State') == 'Recovered' and not \
-            row.get('Recovered'):
-            continue
-        if row.get('Country/Region') == 'Canada' and not row.get('Province/State'):
-            row['Province/State'] = 'Recovery aggregated'
-            row['Lat'] = row.get('Lat', '56.1304')
-            row['Long'] = row.get('Long', '-106.3468')
-        yield {**expected, **row}
-
-Flow(
-      load(f'{BASE_URL}{CONFIRMED}'),
-      load(f'{BASE_URL}{RECOVERED}'),
-      load(f'{BASE_URL}{DEATH}'),
-      load(f'{BASE_URL}{CONFIRMED_US}'),
-      load(f'{BASE_URL}{DEATH_US}'),
-      checkpoint('load_data'),
-      unpivot(unpivoting_fields, extra_keys, extra_value),
-      find_replace([{'name': 'Date', 'patterns': [{'find': '/', 'replace': '-'}]}]),
-      to_normal_date,
-      set_type('Date', type='date', format='%d-%m-%y', resources=None),
-      set_type('Case', type='number', resources=None),
-      join(
-        source_name='time_series_covid19_confirmed_global',
-        source_key=['Province/State', 'Country/Region', 'Date'],
-        source_delete=True,
-        target_name='time_series_covid19_deaths_global',
-        target_key=['Province/State', 'Country/Region', 'Date'],
-        fields=dict(Confirmed={
-            'name': 'Case',
-            'aggregate': 'first'
-        })
-      ),
-      join(
-        source_name='time_series_covid19_recovered_global',
-        source_key=['Province/State', 'Country/Region', 'Date'],
-        source_delete=True,
-        target_name='time_series_covid19_deaths_global',
-        target_key=['Province/State', 'Country/Region', 'Date'],
-        fields=dict(Recovered={
-            'name': 'Case',
-            'aggregate': 'first'
-        }),
-        mode='full-outer'
-      ),
-      # Add missing columns, e.g., after 'full-outer' join, the rows structure
-      # is inconsistent
-      fix_canada_recovered_data,
-      add_computed_field(
-        target={'name': 'Deaths', 'type': 'number'},
-        operation='format',
-        with_='{Case}',
-        resources=['time_series_covid19_deaths_global']
-      ),
-      delete_fields(['Case'], resources=['time_series_covid19_deaths_global']),
-      update_resource('time_series_covid19_deaths_global', name='time-series-19-covid-combined', path='data/time-series-19-covid-combined.csv'),
-      update_resource('time_series_covid19_confirmed_US', name='us_confirmed', path='data/us_confirmed.csv'),
-      update_resource('time_series_covid19_deaths_US', name='us_deaths', path='data/us_deaths.csv'),
-      update_schema('time-series-19-covid-combined', missingValues=['None', ''], fields=[
-        {
-        "format": "%Y-%m-%d",
-        "name": "Date",
-        "type": "date"
-        },
-        {
-          "format": "default",
-          "name": "Country/Region",
-          "type": "string"
-        },
-        {
-          "format": "default",
-          "name": "Province/State",
-          "type": "string"
-        },
-        {
-          "decimalChar": ".",
-          "format": "default",
-          "groupChar": "",
-          "name": "Lat",
-          "type": "number"
-        },
-        {
-          "decimalChar": ".",
-          "format": "default",
-          "groupChar": "",
-          "name": "Long",
-          "type": "number"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Confirmed",
-          "title": "Cumulative total confirmed cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Recovered",
-          "title": "Cumulative total recovered cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Deaths",
-          "title": "Cumulative total deaths to date",
-          "type": "integer"
-        }
-      ]),
-      update_schema('us_confirmed', missingValues=['None', '']),
-      update_schema('us_deaths', missingValues=['None', '']),
-      add_computed_field(
-        target={'name': 'Long', 'type': 'number'},
-        operation='format',
-        with_='{Long_}',
-        resources=['us_confirmed', 'us_deaths']
-      ),
-      add_computed_field(
-        target={'name': 'Country/Region', 'type': 'string'},
-        operation='format',
-        with_='{Country_Region}',
-        resources=['us_confirmed', 'us_deaths']
-      ),
-      add_computed_field(
-        target={'name': 'Province/State', 'type': 'string'},
-        operation='format',
-        with_='{Province_State}',
-        resources=['us_confirmed', 'us_deaths']
-      ),
-      delete_fields(['Long_','Country_Region','Province_State'], resources=['us_confirmed','us_deaths']),
-      checkpoint('processed_data'),
-      printer(),
-      # Sort rows by date and country
-      sort_rows('{Country/Region}{Province/State}{Date}', resources='time-series-19-covid-combined'),
-      # Duplicate the stream to create aggregated data
-      duplicate(
-        source='time-series-19-covid-combined',
-        target_name='worldwide-aggregated',
-        target_path='data/worldwide-aggregated.csv'
-      ),
-      join_with_self(
-        resource_name='worldwide-aggregated',
-        join_key=['Date'],
-        fields=dict(
-            Date={
-                'name': 'Date'
-            },
-            Confirmed={
-                'name': 'Confirmed',
-                'aggregate': 'sum'
-            },
-            Recovered={
-                'name': 'Recovered',
-                'aggregate': 'sum'
-            },
-            Deaths={
-                'name': 'Deaths',
-                'aggregate': 'sum'
-            }
-        )
-      ),
-      printer(),
-      update_schema('worldwide-aggregated', missingValues=['None', ''], fields=[
-        {
-          "format": "%Y-%m-%d",
-          "name": "Date",
-          "type": "date"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Confirmed",
-          "title": "Cumulative total confirmed cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Recovered",
-          "title": "Cumulative total recovered cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Deaths",
-          "title": "Cumulative total deaths to date",
-          "type": "integer"
-        }
-      ]),
-      checkpoint('processed_worldwide_data'),
-      # Add daily increase rate field in the worldwide data
-      calculate_increase_rate,
-      # Create another resource with key countries pivoted
-      duplicate(
-        source='time-series-19-covid-combined',
-        target_name='key-countries-pivoted',
-        target_path='data/key-countries-pivoted.csv'
-      ),
-      join_with_self(
-        resource_name='key-countries-pivoted',
-        join_key=['Date', 'Country/Region'],
-        fields=dict(
-            Date={
-                'name': 'Date'
-            },
-            Country={
-                'name': 'Country/Region'
-            },
-            Confirmed={
-                'name': 'Confirmed',
-                'aggregate': 'sum'
-            },
-            Recovered={
-                'name': 'Recovered',
-                'aggregate': 'sum'
-            },
-            Deaths={
-                'name': 'Deaths',
-                'aggregate': 'sum'
-            }
-        )
-      ),
-      update_schema('key-countries-pivoted', missingValues=['None', ''], fields=[
-        {
-          "format": "%Y-%m-%d",
-          "name": "Date",
-          "type": "date"
-        },
-        {
-          "format": "default",
-          "name": "Country",
-          "type": "string"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Confirmed",
-          "title": "Cumulative total confirmed cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Recovered",
-          "title": "Cumulative total recovered cases to date",
-          "type": "integer"
-        },
-        {
-          "format": "default",
-          "groupChar": "",
-          "name": "Deaths",
-          "title": "Cumulative total deaths to date",
-          "type": "integer"
-        }
-      ]),
-      printer(),
-      checkpoint('processed_country_data'),
-      # All countries aggregated
-      duplicate(
-        source='key-countries-pivoted',
-        target_name='countries-aggregated',
-        target_path='data/countries-aggregated.csv'
-      ),
-      pivot_key_countries,
-      delete_fields(['Country', 'Confirmed', 'Recovered', 'Deaths'], resources='key-countries-pivoted'),
-      load(f'{REFERENCE}', name='reference'),
-      update_resource('reference', path='data/reference.csv'),
-      # Prepare data package (name, title) and add views
-      update_package(
-        name='covid-19',
-        title='Novel Coronavirus 2019',
-        views=[
-            {
-              "title": "Total world to date",
-              "resources": ["worldwide-aggregated"],
-              "specType": "simple",
-              "spec": {
-                "group": "Date",
-                "series": ["Confirmed", "Deaths"],
-                "type": "line"
-              }
-            },
-            {
-                "title": "Number of confirmed cases in key countries",
-                "resources": ["key-countries-pivoted"],
-                "specType": "simple",
-                "spec": {
-                    "group": "Date",
-                    "series": ["China", "US", "United_Kingdom", "Italy", "France", "Germany", "Spain", "Iran"],
-                    "type": "line"
-                }
-            },
-            {
-                "title": "Mortality rate in percentage",
-                "resources": [
-                    {
-                        "name": "worldwide-aggregated",
-                        "transform": [
-                            {
-                                "type": "formula",
-                                "expressions": [
-                                    "data['Deaths'] / data['Confirmed'] * 100 + '%'"
-                                ],
-                                "asFields": ["Mortality rate"]
-                            }
-                        ]
-                    }
-                ],
-                "specType": "simple",
-                "spec": {
-                    "group": "Date",
-                    "series": ["Mortality rate"],
-                    "type": "bar"
-                }
-            },
-            {
-                "title": "Increase rate from previous day in confirmed cases worldwide",
-                "resources": ["worldwide-aggregated"],
-                "specType": "simple",
-                "spec": {
-                    "group": "Date",
-                    "series": ["Increase rate"],
-                    "type": "bar"
-                }
-            }
-        ]
-      ),
-      printer(),
-      dump_to_path()
-).results()[0]
+styles=[hover(),]
+tab['Rank'] = tab.reset_index().index
+tab['Rank'] = tab['Rank'].add(1)
+tab = tab[['Rank', 'Country', 'COVID-free days', 'Total cases in the last 14 days']]       
+s = tab.style.apply(highlighter, axis = 1).set_table_styles(styles).hide_index()
+try:        
+    with open(f'World.html', 'w', encoding="utf-8") as out:
+        content = top + s.render() + bottom
+        out.write(content)
+except Exception as e:
+    print(f'Error:\n{e}')
