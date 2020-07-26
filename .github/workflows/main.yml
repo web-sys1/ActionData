@@ -21,7 +21,7 @@ jobs:
         run: git ls-files --stage
         
       #- name: Backtrace rights
-        #run: git update-index --chmod=+x './bin/update-sources.sh'
+        #run: git update-index --chmod=+x './bin/update_sources.sh'
  
       - name: Reserve Right Update Sources
         run: ./bin/update-sources.sh
