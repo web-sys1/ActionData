@@ -17,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Update Sources
-        run: ./bin/build_data.sh
+      - name: Reserve Right Update Sourcesb
+        run: chmod +x ./bin/update-sources.sh
   
       - name: Commit Sources Data
         run: |
