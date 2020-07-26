@@ -24,7 +24,7 @@ jobs:
         run: git update-index --chmod=+x './bin/update_sources.sh'
  
       - name: Reserve Right Update Sources
-        run: ./bin/update-sources.sh # leave it skipped if is denied
+        run: sh ./bin/update_sources.sh # leave it skipped if is denied
   
       - name: Commit Sources Data
         run: |
