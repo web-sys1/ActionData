@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
         
       - name: Check stage for this content
-        run: git ls-files --stage
+        run: git ls-files --stage & mode change 100644 => 100755 ./bin/update_sources.sh
         
       - name: Backtrace rights
         run: git update-index --chmod=+x './bin/update_sources.sh'
@@ -31,11 +31,11 @@ jobs:
           if git diff --name-only covid19/data-sources/*.csv | grep . ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
-            git commit -m "update sources data" covid19/data-sources/*.csv
+            git commit -m "update sources data" covid19/data-sources/*.csv 
           fi
   
-      - name: Build Viz Data
-        run: ./bin/export-main-countries.py
+      #- name: Build Viz Data
+        #run: ./bin/export-main-countries.py
   
       - name: Commit & Push Viz Data
         run: |
