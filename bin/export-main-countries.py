@@ -155,7 +155,7 @@ usa_states = {
 }
 last_usa_update = 0
 
-for typ in ["confirmed", "deceased", "tested"]:
+for typ in ["confirmed", "deceased"]:
     fname = os.path.join("covid19/data-sources", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths"))
     res = last_file_update(fname)
     if last_usa_update < res:
