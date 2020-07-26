@@ -1,4 +1,3 @@
-#!/bin/bash
 
 
 # World JHU data
