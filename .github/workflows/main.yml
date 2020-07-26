@@ -34,8 +34,8 @@ jobs:
             git commit -m "update sources data" covid19/data-sources/*.csv 
           fi
   
-      #- name: Build Viz Data
-        #run: ./bin/export-main-countries.py
+      - name: Build Viz Data
+        run: ./bin/export-main-countries.py # leave it skipped if is denied
   
       - name: Commit & Push Viz Data
         run: |
