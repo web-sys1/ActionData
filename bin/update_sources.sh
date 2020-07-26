@@ -11,7 +11,7 @@ for typ in confirmed deaths testing; do
 done;
 
 # Italy official data
-curl -sfL https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv > covid19/data-sources/data-sources/dpc-covid19-ita-regioni.csv
+curl -sfL https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv > covid19/data-sources/dpc-covid19-ita-regioni.csv
 
 # Spain official data
 curl -sfL https://covid19.isciii.es/resources/serie_historica_acumulados.csv > covid19/data-sources/serie_historica_acumulados.csv
@@ -26,7 +26,7 @@ curl -sfL https://raw.githubusercontent.com/opencovid19-fr/data/master/dist/chif
 
 # UK official data
 curl -sfL https://raw.githubusercontent.com/tomwhite/covid-19-uk-data/master/data/covid-19-indicators-uk.csv > covid19/data-sources/covid-19-indicators-uk.csv
-./bin/consolidate_uk.py > covid19/data-sources/uk.csv
+sh ./bin/consolidate_uk.py > covid19/data-sources/uk.csv
 
 # Germany official data
 curl -sfL https://raw.githubusercontent.com/micgro42/COVID-19-DE/master/time_series/time-series_19-covid-Confirmed.csv > covid19/data-sources/time_series_covid19_confirmed_Germany.csv
