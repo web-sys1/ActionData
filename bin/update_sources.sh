@@ -1,4 +1,4 @@
-
+#!/bin/bash
 
 # World JHU data
 for typ in confirmed deaths recovered; do
