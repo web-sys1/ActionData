@@ -21,7 +21,10 @@ jobs:
         run: git ls-files --stage
         
       - name: Make them wannable
-        run: git commit -m"Executable!"
+        run: | 
+          git commit -m"Executable!"
+               git config --global user.email "web.system.management@gmail.com"
+               git config --global user.name "web-sys1"
         
       - name: Backtrace rights
         run: git update-index --chmod=+x './bin/update_sources.sh'
