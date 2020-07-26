@@ -18,7 +18,10 @@ jobs:
           fetch-depth: 0
         
       - name: Check stage for this content
-        run: git ls-files --stage & mode change 100644 => 100755 ./bin/update_sources.sh
+        run: git ls-files --stage
+        
+      - name: Make them wannable
+        run: git commit -m"Executable!"
         
       - name: Backtrace rights
         run: git update-index --chmod=+x './bin/update_sources.sh'
