@@ -16,13 +16,16 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-      - name: Reserve Right Update Sourcesb
+        
+      - name: Check stage for this content
+        run: git ls-files --stage
+        
+      - name: Reserve Right Update Sources
         run: load.sh
   
       - name: Commit Sources Data
         run: |
-          if git diff --name-only data/*.csv | grep . ; then
+          if git diff --name-only covid19/data-sourcesdata/*.csv | grep . ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update sources data" covid19/data-sources/*.csv
