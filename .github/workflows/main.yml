@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Reserve Right Update Sourcesb
-        run: sh ./bin/update-sources.sh
+        run: ./bin/load.sh
   
       - name: Commit Sources Data
         run: |
