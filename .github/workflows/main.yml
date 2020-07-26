@@ -20,15 +20,15 @@ jobs:
       - name: Check stage for this content
         run: git ls-files --stage
         
-      - name: Backtrace rights
-        run: git update-index --chmod=+x './bin/update-sources.sh'
+      #- name: Backtrace rights
+        #run: git update-index --chmod=+x './bin/update-sources.sh'
  
       - name: Reserve Right Update Sources
         run: ./bin/update-sources.sh
   
       - name: Commit Sources Data
         run: |
-          if git diff --name-only covid19/data-sourcesdata/*.csv | grep . ; then
+          if git diff --name-only covid19/data-sources/*.csv | grep . ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update sources data" covid19/data-sources/*.csv
@@ -39,7 +39,7 @@ jobs:
   
       - name: Commit & Push Viz Data
         run: |
-          if git diff data/*.json | grep . > /dev/null ; then
+          if git diff --name-only covid19/data-sources/*.json | grep . > /dev/null ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update viz data" covid19/data-sources/coronavirus-countries.json
