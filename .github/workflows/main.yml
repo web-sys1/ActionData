@@ -20,8 +20,11 @@ jobs:
       - name: Check stage for this content
         run: git ls-files --stage
         
+      - name: Backtrace rights
+        run: git update-index --chmod=+x './bin/update-sources.sh'
+ 
       - name: Reserve Right Update Sources
-        run: load.sh
+        run: ./bin/update-sources.sh
   
       - name: Commit Sources Data
         run: |
