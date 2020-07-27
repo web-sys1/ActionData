@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Build and proceed
+        run: sh .bin/build_data.sh
+        
       - name: Update Sources
         run: sh ./bin/update_sources.sh
   
