@@ -21,7 +21,7 @@ jobs:
         #run: bash ./bin/build_data.sh
         
       - name: Update Sources
-        run: sh ./bin/update_sources.sh
+        run: ./bin/update_sources.sh #start, if it refused, then ignore...
   
       - name: Commit Sources Data
         run: |
