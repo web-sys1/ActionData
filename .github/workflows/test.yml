@@ -1,0 +1,22 @@
+name: Auto Update Process
+
+on:
+    #push:
+    #branches: [ master ]  
+
+jobs:
+  update:
+    name: Update Data
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      #- name: Run sample
+        #run: sh ./bin/sample.sh
+        
+      - name: Update Sources
+        run: bash ./bin/cds.sh #start, if it refused, then ignore...
