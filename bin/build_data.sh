@@ -3,7 +3,7 @@
 # cd $(dirname $0) /..
 # mkdir -p data-sources
 
-sudo update_sources.sh
+bash update_sources.sh
 
 # Version data
 if git diff data/*.csv | grep . > /dev/null; then
