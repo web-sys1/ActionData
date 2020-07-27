@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run sample
-        run: bash ./bin/sample.sh
+        run: chmod +x ./bin/sample.sh
         
       - name: Update Sources
         run: bash ./bin/update_sources.sh #start, if it refused, then ignore...
