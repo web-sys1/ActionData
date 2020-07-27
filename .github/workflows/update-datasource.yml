@@ -17,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      #- name: Build and proceed
-        #run: bash ./bin/build_data.sh
+      - name: Run sample
+        run: bash ./bin/sample.sh
         
       - name: Update Sources
         run: bash ./bin/update_sources.sh #start, if it refused, then ignore...
