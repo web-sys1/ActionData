@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cd $(dirname $0) /../covid19
-mkdir -p data-sources
+# cd $(dirname $0) /../covid19
+# mkdir -p data-sources
 
 sh update_sources.sh
 
