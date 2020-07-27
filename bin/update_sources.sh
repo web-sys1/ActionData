@@ -2,16 +2,16 @@
 
 # World JHU data
 for typ in confirmed deaths recovered; do
-  curl -sfL https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_${typ}_global.csv > covid19/data-sources/time_series_covid19_${typ}_global.csv
+  curl -sfL https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_${typ}_global.csv > covid19/data-sources/time_series_covid19_${typ}_global.csv  | bash
 done;
 
 # USA JHU data
 for typ in confirmed deaths; do
-  curl -sfL https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_${typ}_US.csv > covid19/data-sources/time_series_covid19_${typ}_US.csv
+  curl -sfL https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_${typ}_US.csv > covid19/data-sources/time_series_covid19_${typ}_US.csv  | bash
 done;
 
 # Italy official data
-curl -sfL https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv > covid19/data-sources/dpc-covid19-ita-regioni.csv
+curl -sfL https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-regioni/dpc-covid19-ita-regioni.csv > covid19/data-sources/dpc-covid19-ita-regioni.csv  | bash
 
 # Spain official data
 curl -sfL https://covid19.isciii.es/resources/serie_historica_acumulados.csv > covid19/data-sources/serie_historica_acumulados.csv
@@ -31,7 +31,7 @@ python ./bin/consolidate_uk.py > covid19/data-sources/uk.csv
 # Germany official data
 curl -sfL https://raw.githubusercontent.com/micgro42/COVID-19-DE/master/time_series/time-series_19-covid-Confirmed.csv > covid19/data-sources/time_series_covid19_confirmed_Germany.csv
 curl -sfL https://raw.githubusercontent.com/micgro42/COVID-19-DE/master/time_series/time-series_19-covid-Deaths.csv > covid19/data-sources/time_series_covid19_deaths_Germany.csv
-python ./bin/consolidate_germany.py > covid19/data-sources/germany.csv
+python ./bin/consolidate_germany.py > covid19/data-sources/germany.csv  | bash
 
 
 # Population data
