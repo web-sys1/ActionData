@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# cd $(dirname $0) /../covid19
+# cd $(dirname $0) /..
 # mkdir -p data-sources
 
-sh update_sources.sh
+sudo update_sources.sh
 
 # Version data
 if git diff data/*.csv | grep . > /dev/null; then
