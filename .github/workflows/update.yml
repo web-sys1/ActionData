@@ -27,7 +27,7 @@ jobs:
       run: pip3 install requests
       
     - name: Trigger source code
-      run: python src/80-create-events-data.py
+      run: python src/90-create-latest-totals-dataset.py
        
     # Runs a single command using the runners shell
     - name: Run hourly data updates
