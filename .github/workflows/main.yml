@@ -26,13 +26,8 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add countries.js countries.json populations.js populations.json
-        git commit -m "Add latest dataset" -a
-         if git diff --exit-code --quiet; then
-          echo "No changes. Skip action."
-        else
-          git commit -m "Add latest dataset" -a
-        fi
+        git commit -m "Add latest dataset" -a || true
+
     - name: Push changes
       uses: ad-m/github-push-action@v0.5.0
       with:
