@@ -1,8 +1,8 @@
 name: Auto Update Process
 
 on:
-  #schedule:
-    #- cron:  '0 */6 * *  *'
+  schedule:
+    - cron:  '*/6 * * * *'
   push:
     branches: [ master ]   
 
@@ -17,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run sample
-        run: sh ./bin/sample.sh
+      #- name: Run sample
+        #run: sh ./bin/sample.sh
         
       - name: Update Sources
         run: bash ./bin/update_sources.sh #start, if it refused, then ignore...
