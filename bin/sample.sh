@@ -3,6 +3,8 @@
 # Author: Vivek Gite
 # -------------------------------------------------  # Define bash shell variable called var 
 # Avoid spaces around the assignment operator (=)
+
+mkdir sample
 var="Hello World"  # print it 
 echo "$var"  # Another way of printing it
 printf "%s\n" "$var"
