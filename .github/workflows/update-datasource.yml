@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run sample
-        run: ./bin/sample.sh
+        run: sh ./bin/sample.sh
         
       - name: Update Sources
         run: bash ./bin/update_sources.sh #start, if it refused, then ignore...
