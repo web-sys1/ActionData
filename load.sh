@@ -1,1 +1,0 @@
-cd covid19
