@@ -30,13 +30,12 @@ jobs:
     - name: Run hourly data updates
       run: run-parts --regex='.*\.py$' --verbose src/
       
-    - name: Set target
-      run: git add data_collation
-
     - name: Commit files
       run: |
+        git init
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add data_collation
         git commit -m "Add latest dataset" -a || true
     - name: Push changes
       uses: ad-m/github-push-action@v0.5.0
