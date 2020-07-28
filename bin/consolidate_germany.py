@@ -7,7 +7,7 @@ import csv
 landers = {}
 dates = []
 
-with open(os.path.join("covid19/data-sources", "time_series_covid19_confirmed_Germany.csv")) as f:
+with open(os.path.join("covid19/data_sources", "time_series_covid19_confirmed_Germany.csv")) as f:
     for row in csv.DictReader(f):
         if not dates:
             dates = list(row.keys())
@@ -16,7 +16,7 @@ with open(os.path.join("covid19/data-sources", "time_series_covid19_confirmed_Ge
             landers[row["State"]] = {}
         landers[row["State"]]["confirmed"] = row
 
-with open(os.path.join("covid19/data-sources", "time_series_covid19_deaths_Germany.csv")) as f:
+with open(os.path.join("covid19/data_sources", "time_series_covid19_deaths_Germany.csv")) as f:
     for row in csv.DictReader(f):
         landers[row["State"]]["deceased"] = row
 
