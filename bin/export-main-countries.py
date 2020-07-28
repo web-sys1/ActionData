@@ -130,7 +130,7 @@ countries = {
 last_jhu_update = 0
 
 for typ in ["confirmed", "recovered", "deceased"]:
-    fname = os.path.join("covid19/data-sources", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
+    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
     res = last_file_update(fname)
     if last_jhu_update < res:
         last_jhu_update = res
@@ -156,7 +156,7 @@ usa_states = {
 last_usa_update = 0
 
 for typ in ["confirmed", "deceased"]:
-    fname = os.path.join("covid19/data-sources", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths"))
+    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths"))
     res = last_file_update(fname)
     if last_usa_update < res:
         last_usa_update = res
@@ -227,7 +227,7 @@ def load_populations(scopes):
     for name in scopes:
         name = name.strip()
         try:
-            with open(os.path.join("covid19/data-sources", "population-%s.csv" % name)) as f:
+            with open(os.path.join("covid19/data_sources", "population-%s.csv" % name)) as f:
                 populations[name] = {}
                 for place in csv.DictReader(f):
                     populations[name][place["id"]] = int(place["pop"])
@@ -290,7 +290,7 @@ for name, scope in data["scopes"].items():
 
 
 france_ehpad = 0
-with open(os.path.join("covid19/data-sources", "chiffres-cles.csv")) as f:
+with open(os.path.join("covid19/data_sources", "chiffres-cles.csv")) as f:
     for row in csv.DictReader(f):
         if row["granularite"] == "pays" and row["deces_ehpad"]:
             try:
@@ -411,7 +411,7 @@ load_populations(localities.keys())
 for scope, metas in localities.items():
     if "filename" not in metas or not metas["filename"]:
         continue
-    fname = os.path.join("covid19/data-sources", metas["filename"])
+    fname = os.path.join("covid19/data_sources", metas["filename"])
 
     data["scopes"][scope] = {
         "level": metas["level"],
@@ -458,5 +458,5 @@ for scope, metas in localities.items():
                 data["scopes"][scope]["values"]["total"]["currently_sick"][idx] = sick
 
 
-with open(os.path.join("covid19/data-sources", "coronavirus-countries.json"), "w") as f:
+with open(os.path.join("covid19/data_sources", "coronavirus-countries.json"), "w") as f:
     json.dump(data, f, sort_keys=True)
