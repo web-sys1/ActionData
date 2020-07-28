@@ -2,9 +2,7 @@ name: Auto Update Process
 
 on:
   schedule:
-    - cron:  '*/40 * * * *'
-  push:
-    branches: [ master ]   
+    - cron:  '*/40 * * * *'  
 
 jobs:
   update:
