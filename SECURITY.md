@@ -14,8 +14,9 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+It uses this section to tell people how to report a vulnerability.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+## Problem to solve
+
+Standardize the security reporting process in open source projects as there is no current standard process to privately disclose potential security vulnerabilities to project maintainers.  Additionally, most open source projects do not provide information on how to disclose potential security vulnerabilities.
+
