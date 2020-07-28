@@ -4,8 +4,8 @@
 name: Update World Country Rankings
 
 on:
-  push:
-    branches: [ master ]
+  #push:
+    #branches: [ master ]
   schedule:
     - cron: '0 */6 * * *'
       
@@ -38,13 +38,13 @@ jobs:
       run: |
         python covid19/world.py
         
-    - name: commit files
+    - name: Commit files
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git commit --allow-empty -m "Auto-update of the data packages" -a
         git pull   
-    - name: Push changes
+    - name: Push changes on built version
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
