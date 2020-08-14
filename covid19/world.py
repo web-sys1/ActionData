@@ -63,10 +63,25 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         focus.at['06/02', 'new'] = 0
         focus.at['06/04', 'new'] = 767
         
-    # New Zealand cases are all in managed isolation since 06/17
+    # New Zealand
     if country == 'New Zealand':
-        focus['new'].loc['06/17':] = 0
-    
+        import time 
+        day = time.strftime('%d%b',time.localtime(time.time() + 25200))
+        day = day.lower()
+        df_nz = pd.read_excel('https://www.health.govt.nz/system/files/documents/pages/covid-cases-{0}20.xlsx'.format(day), sheet_name='Confirmed',skiprows=[0,1,2])
+        nz = df_nz.copy()
+        nz = nz[['Date notified of potential case','DHB']]
+        nz['new'] = 1
+        nz = nz[nz['DHB'] != 'Managed isolation & quarantine']
+        tod = pd.to_datetime('today')
+        idx = pd.date_range('02-26-2020', tod)
+        focus = nz.groupby(['Date notified of potential case']).sum()
+        focus.index = pd.to_datetime(focus.index, dayfirst=True)
+        focus = focus.reindex(idx, fill_value=0)
+
+    # Thailand cases are all in managed isolation since 05/26
+    if country == 'Thailand':
+        focus['new'].loc['05/26':] = 0
    
     #correcting country names
     if country == 'Taiwan*':
@@ -118,8 +133,7 @@ tab = tab_t.append(tab_f)
 tab = tab.drop(['week'], axis=1)
 
 
-# Configuration in Percent Change
-# Please note: the code is used to reflect data on SARS-CoV-2 statistics.
+#Percent Change
 
 tab['PercentChange'] = 100*(tab['Last7'] - tab['Previous7'])/(tab['Last7']+tab['Previous7'])
 tab['PercentChange'] = tab['PercentChange'].fillna(0.0)
@@ -155,10 +169,10 @@ def hover(hover_color="#ffff99"):
 
 top = """
 <!DOCTYPE html>
-<html>
-<head>
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
+<html>
+<head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script>
 function colorize() {
