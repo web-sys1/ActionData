@@ -83,7 +83,6 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
          focus = focus.reindex(idx, fill_value=0)
         except Exception as e:
          print('\nThere was some kind of error, aborting...\n') 
-         pass
          print(f'FAULT:\n')
          raise e
          traceback.print_exc()
