@@ -64,22 +64,31 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         focus.at['06/04', 'new'] = 767
         
     # New Zealand
+#try:
     if country == 'New Zealand':
-        import time 
-        day = time.strftime('%d%b',time.localtime(time.time() + 25200))
-        day = day.lower()
-        df_nz = pd.read_excel('https://www.health.govt.nz/system/files/documents/pages/covid-cases-{0}20.xlsx'.format(day), sheet_name='Confirmed',skiprows=[0,1,2])
-        nz = df_nz.copy()
-        nz = nz[['Date notified of potential case','DHB']]
-        nz['new'] = 1
-        nz = nz[nz['DHB'] != 'Managed isolation & quarantine']
-        tod = pd.to_datetime('today')
-        idx = pd.date_range('02-26-2020', tod)
-        focus = nz.groupby(['Date notified of potential case']).sum()
-        focus.index = pd.to_datetime(focus.index, dayfirst=True)
-        focus = focus.reindex(idx, fill_value=0)
+        import time
+        import sys, traceback
+        try:        
+         day = time.strftime('%d%b',time.localtime(time.time() + 25200))
+         day = day.lower()
+         df_nz = pd.read_excel('https://www.health.govt.nz/system/files/documents/pages/covid-cases-{0}20.xlsx'.format(day), sheet_name='Confirmed',skiprows=[0,1,2])
+         nz = df_nz.copy()
+         nz = nz[['Date notified of potential case','DHB']]
+         nz['new'] = 1
+         nz = nz[nz['DHB'] != 'Managed isolation & quarantine']
+         tod = pd.to_datetime('today')
+         idx = pd.date_range('02-26-2020', tod)
+         focus = nz.groupby(['Date notified of potential case']).sum()
+         focus.index = pd.to_datetime(focus.index, dayfirst=True)
+         focus = focus.reindex(idx, fill_value=0)
+        except Exception as e:
+         print('\nThere was some kind of error, aborting...\n') 
+         pass
+         print(f'FAULT:\n')
+         raise e
+         traceback.print_exc()
+         sys.exit()
 
-    # Thailand cases are all in managed isolation since 05/26
     if country == 'Thailand':
         focus['new'].loc['05/26':] = 0
    
