@@ -6,7 +6,7 @@ name: Update World Country Rankings
 on:
  push:
     branches: [ master ]
-  schedule:
+ schedule:
     - cron: '40 */6 * * *'
       
 jobs:
