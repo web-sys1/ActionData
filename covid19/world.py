@@ -64,6 +64,7 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         focus.at['06/04', 'new'] = 767
         
     # New Zealand
+
     if country == 'New Zealand':
         import time 
         day = time.strftime('%-d%b',time.localtime(time.time() + 25200))
@@ -80,6 +81,8 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         focus = nz.groupby(['Date notified of potential case']).sum()
         focus.index = pd.to_datetime(focus.index, dayfirst=True)
         focus = focus.reindex(idx, fill_value=0)
+    else:
+        pass
 
     # Thailand cases are all in managed isolation since 05/26
     if country == 'Thailand':
