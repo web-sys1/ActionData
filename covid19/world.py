@@ -66,8 +66,8 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
     # New Zealand
     if country == 'New Zealand':
         import time 
-        day = time.strftime('%d%b',time.localtime(time.time() + 25200))
-        day = day.strip('0').lower()
+        day = time.strftime('%-d%b',time.localtime(time.time() + 25200))
+        day = day.lower()
         url = f'https://www.health.govt.nz/system/files/documents/pages/covid-cases-{day}t20.xlsx'
         df_nz = pd.read_excel(url, sheet_name='Confirmed',skiprows=[0,1])
         #df_nz = pd.read_excel('https://www.health.govt.nz/system/files/documents/pages/covid-cases-{0}t20.xlsx'.format(day), sheet_name='Confirmed',skiprows=[0,1])
