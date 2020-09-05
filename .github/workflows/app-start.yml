@@ -36,7 +36,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Process Data
       run: |
-        python covid19/world.py
+        python bin/world.py
         
     - name: Commit files
       run: |
