@@ -50,7 +50,7 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
 
 
 
-    #leaving out countries which haven't been vetted, or have bad data
+    # leaving out countries which haven't been vetted, or have bad data
     if country in do_not_include:
         continue
         
@@ -65,30 +65,56 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         
     # New Zealand
     if country == 'New Zealand':
-        import requests
-        url = 'https://www.health.govt.nz/our-work/diseases-and-conditions/covid-19-novel-coronavirus/covid-19-current-situation/covid-19-current-cases/covid-19-current-cases-details'
+      focus = pd.DataFrame([[0],[1],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]],	columns=['new'])
+    #    import requests
+    #    url = 'https://www.health.govt.nz/our-work/diseases-and-conditions/covid-19-novel-coronavirus/covid-19-current-situation/covid-19-current-cases/covid-19-current-cases-details'
 
-        header = {
-          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
-          "X-Requested-With": "XMLHttpRequest"
-        }
+    #    header = {
+    #      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
+    #      "X-Requested-With": "XMLHttpRequest"
+    #    }
 
-        r = requests.get(url, headers=header)
+#        r = requests.get(url, headers=header)
 
-        dfs = pd.read_html(r.text)
-        hm = dfs[0]
-        nz = hm[['Date notified of potential case','Overseas travel']]
-        nz['new'] = 1
-        nz = nz[nz['Overseas travel'] != 'Yes']
-        tod = pd.to_datetime('today')
-        idx = pd.date_range('02-26-2020', tod)
-        focus = nz.groupby(['Date notified of potential case']).sum()
-        focus.index = pd.to_datetime(focus.index, dayfirst=True)
-        focus = focus.reindex(idx, fill_value=0)
+#        dfs = pd.read_html(r.text)
+#        hm = dfs[0]
+#        nz = hm[['Date notified of potential case','Overseas travel']]
+#        nz['new'] = 1
+#        nz = nz[nz['Overseas travel'] != 'Yes']
+#        tod = pd.to_datetime('today')
+#        idx = pd.date_range('02-26-2020', tod)
+#        focus = nz.groupby(['Date notified of potential case']).sum()
+#        focus.index = pd.to_datetime(focus.index, dayfirst=True)
+#        focus = focus.reindex(idx, fill_value=0)
 
     # Thailand cases are all in managed isolation since 05/26
     if country == 'Thailand':
-        focus['new'].loc['05/26':] = 0
+        import re
+        import requests
+        import time
+        import datetime
+        url_s = 'https://data.go.th/dataset/covid-19-daily'
+        t = requests.get(url_s).text
+        filenames = re.findall('https:(.+?)\.xlsx', t)
+        url = 'https:' + filenames[0] + '.xlsx'
+        df_t = pd.read_excel(url)
+        #dayt = datetime.date(1899, 12, 30)
+        #c = 0
+        #for i in df_t[df_t.columns[6]]:
+        #    df_t[df_t.columns[6]][c] = dayt + datetime.timedelta(days=i)
+        #    c=c+1
+        df_t = df_t.set_index([df_t.columns[6]])
+        df_t.index.name = None
+        df_t = df_t[df_t[df_t.columns[3]]=='Thailand']
+        df_t['new'] = 0
+        df_t.loc[pd.isna(df_t[df_t.columns[8]]),'new'] = 1
+        tod = pd.to_datetime('today')
+        idx = pd.date_range('01-22-2020', tod)
+        df_t = df_t.groupby(df_t.index).sum()
+        df_t.index = pd.to_datetime(df_t.index, dayfirst=True)
+        focus = df_t.reindex(idx, fill_value=0)
+        man1 = pd.to_datetime('2020-10-13')
+        focus.loc[man1,'new'] = 3
    
     #correcting country names
     if country == 'Taiwan*':
@@ -238,3 +264,4 @@ try:
         out.write(content)
 except Exception as e:
     print(f'Error:\n{e}')
+
