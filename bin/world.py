@@ -65,27 +65,26 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         
     # New Zealand
     if country == 'New Zealand':
-      focus = pd.DataFrame([[0],[1],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]],	columns=['new'])
-    #    import requests
-    #    url = 'https://www.health.govt.nz/our-work/diseases-and-conditions/covid-19-novel-coronavirus/covid-19-current-situation/covid-19-current-cases/covid-19-current-cases-details'
+      import requests
+      import re
 
-    #    header = {
-    #      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.75 Safari/537.36",
-    #      "X-Requested-With": "XMLHttpRequest"
-    #    }
+      t = requests.get('https://www.health.govt.nz/our-work/diseases-and-conditions/covid-19-novel-coronavirus/covid-19-data-and-statistics/covid-19-case-demographics').text
+      filename = re.findall('system(.+?)\.csv', t)
+      url = 'https://www.health.govt.nz/system'+filename[0]+'.csv'
+      urlData = requests.get(url).content
 
-#        r = requests.get(url, headers=header)
+      from io import StringIO
 
-#        dfs = pd.read_html(r.text)
-#        hm = dfs[0]
-#        nz = hm[['Date notified of potential case','Overseas travel']]
-#        nz['new'] = 1
-#        nz = nz[nz['Overseas travel'] != 'Yes']
-#        tod = pd.to_datetime('today')
-#        idx = pd.date_range('02-26-2020', tod)
-#        focus = nz.groupby(['Date notified of potential case']).sum()
-#        focus.index = pd.to_datetime(focus.index, dayfirst=True)
-#        focus = focus.reindex(idx, fill_value=0)
+      s=str(urlData,'utf-8')
+      data = StringIO(s) 
+      df=pd.read_csv(data)
+      df['new']=1
+      df = df[df['Overseas travel'] != 'Yes']
+      tod = pd.to_datetime('today')
+      idx = pd.date_range('02-26-2020', tod)
+      focus = df.groupby(['Report Date']).sum()
+      focus.index = pd.to_datetime(focus.index, dayfirst=True)
+      focus = focus.reindex(idx, fill_value=0)
 
     # Thailand cases are all in managed isolation since 05/26
     if country == 'Thailand':
@@ -103,6 +102,7 @@ for j, country in enumerate(confirm.iloc[-1].sort_values(ascending=False).index[
         #for i in df_t[df_t.columns[6]]:
         #    df_t[df_t.columns[6]][c] = dayt + datetime.timedelta(days=i)
         #    c=c+1
+        df_t['announce_date'] = df_t['announce_date'].astype(str).replace({'[0-9][0-9][0-9][0-9]':'2020'},regex=True)
         df_t = df_t.set_index([df_t.columns[6]])
         df_t.index.name = None
         df_t = df_t[df_t[df_t.columns[3]]=='Thailand']
@@ -181,17 +181,21 @@ def highlighter(s):
     r=''
     try:
         if val_1>=14: #More than 14 Covid free days
-            r = 'background-color: #018001; color: #ffffff;'
+            r = 'background-color: #24773B; color: #ffffff;'
         elif 20>=val_2 : # less than 20 in last 2 weeks
-            r = 'background-color: #02be02; color: #ffffff;'
-        elif 200>=val_2 >=21: #Light green
-            r = 'background-color: #ffff01;'
-        elif 1000>=val_2 >= 201: #Yellow
-            r = 'background-color: #ffa501;'
-        elif 20000>=val_2 >= 1001: #Orange
-            r = 'background-color: #ff3434;'
-        elif val_2 > 20001: # Red
-            r = 'background-color: #990033;'
+            r = 'background-color: #89c540;' 
+        elif 200>=val_2 >=21: #Yellow
+            r = 'background-color: #f9cc3d;'
+        elif 1000>=val_2 >= 201: #Orange
+            r = 'background-color: #f8961d;'
+        elif 20000>=val_2 >= 1001: #Light Red
+            r = 'background-color: #ef3d23;'
+        elif 200000>=val_2 > 20001: # Red
+            r = 'background-color: #B11F24;'
+        elif 1000000>=val_2 > 200001: # Light Purple
+            r = 'background-color: #652369;'
+        elif val_2 > 1000000: # Purple
+            r = 'background-color: #36124B; color: #ffffff;'
     except Exception as e:
         r = 'background-color: white'
     return [r]*(len(s)-2) + ['']*2
@@ -202,10 +206,10 @@ def hover(hover_color="#ffff99"):
 
 top = """
 <!DOCTYPE html>
-<html>
-<head>
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
+<html>
+<head>
 <style>
     h2 {
         text-align: center;
@@ -264,4 +268,3 @@ try:
         out.write(content)
 except Exception as e:
     print(f'Error:\n{e}')
-
