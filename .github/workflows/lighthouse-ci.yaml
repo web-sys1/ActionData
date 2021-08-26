@@ -1,19 +1,15 @@
 name: Build project and run Lighthouse CI
 on: [push]
 jobs:
-  lhci:
-    name: Lighthouse CI
-    runs-on: ubuntu-latest
+  lighthouse:
+    name: Lighthouse
+    runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js 14.x
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
         with:
-          node-version: 14.x
-      - name: npm install
-        run: |
-          npm install
-      - name: run Lighthouse CI
-        run: |
-          npm install -g @lhci/cli@0.7.x
-          lhci autorun --upload.target=temporary-public-storage || echo "LHCI failed!"
+          node-version: "14.x"
+      - name: Setup Lighthouse
+        run: npm install -g @lhci/cli@0.7.x
+      - name: Lighthouse Report
+        run: lhci autorun --upload.target=temporary-public-storage --collect.staticDistDir=. || echo "LHCI! can only run with Chromium remote configuration"
