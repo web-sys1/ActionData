@@ -10,6 +10,6 @@ jobs:
         with:
           node-version: "14.x"
       - name: Setup Lighthouse
-        run: npm install -g @lhci/cli@0.7.x
+        run: npm install -g @lhci/cli@0.8.2
       - name: Lighthouse Report
         run: lhci autorun --upload.target=temporary-public-storage --collect.staticDistDir=. || echo "LHCI! can only run with Chromium remote configuration"
