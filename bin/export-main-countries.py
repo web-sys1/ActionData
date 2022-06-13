@@ -33,28 +33,6 @@ def clean_region(r):
         r = "USA"
     return r
 
-def clean_spain_locality(r):
-    r = r.replace("AN", "Andalucía")
-    r = r.replace("AR", "Aragón")
-    r = r.replace("AS", "Asturias")
-    r = r.replace("IB", "Baleares")
-    r = r.replace("CN", "Canarias")
-    r = r.replace("CB", "Cantabria")
-    r = r.replace("CM", "Castilla La Mancha")
-    r = r.replace("CL", "Castilla y León")
-    r = r.replace("CT", "Cataluña")
-    r = r.replace("CE", "Ceuta")
-    r = r.replace("GA", "Galicia")
-    r = r.replace("VC", "Valenciana")
-    r = r.replace("EX", "Extremadura")
-    r = r.replace("MD", "Madrid")
-    r = r.replace("ML", "Melilla")
-    r = r.replace("MC", "Murcia")
-    r = r.replace("NC", "Navarra")
-    r = r.replace("PV", "País Vasco")
-    r = r.replace("RI", "La Rioja")
-    return r
-
 USA_states = {
     "AL": "Alabama",
     "AK": "Alaska",
@@ -113,8 +91,6 @@ def clean_locality(r, scope):
         r = clean_region(r)
     if "," in r and scope == "USA":
         r = USA_states.get(r.split(",")[1].strip(), r)
-    elif scope == "Spain":
-        r = clean_spain_locality(r)
     return r
 
 def last_file_update(f):
@@ -125,12 +101,14 @@ def last_file_update(f):
 countries = {
     "confirmed": defaultdict(list),
     "recovered": defaultdict(list),
-    "deceased": defaultdict(list)
+    "deceased": defaultdict(list),
+    "vaccinated_once": defaultdict(list),
+    "vaccinated_fully": defaultdict(list)
 }
 last_jhu_update = 0
 
 for typ in ["confirmed", "recovered", "deceased"]:
-    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
+    fname = os.path.join("data", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
     res = last_file_update(fname)
     if last_jhu_update < res:
         last_jhu_update = res
@@ -155,8 +133,8 @@ usa_states = {
 }
 last_usa_update = 0
 
-for typ in ["confirmed", "deceased"]:
-    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths"))
+for typ in ["confirmed", "deceased", "tested"]:
+    fname = os.path.join("data", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths").replace("tested", "testing"))
     res = last_file_update(fname)
     if last_usa_update < res:
         last_usa_update = res
@@ -227,7 +205,7 @@ def load_populations(scopes):
     for name in scopes:
         name = name.strip()
         try:
-            with open(os.path.join("covid19/data_sources", "population-%s.csv" % name)) as f:
+            with open(os.path.join("data", "population-%s.csv" % name)) as f:
                 populations[name] = {}
                 for place in csv.DictReader(f):
                     populations[name][place["id"]] = int(place["pop"])
@@ -248,13 +226,33 @@ def unit_vals(ndates, fieldnames, population=0):
     return unit
 
 
+with open(os.path.join("data", "vaccines.json")) as f:
+    vaccines = json.load(f)
+    vacc_dates = sorted(vaccines["France"].keys())
+    mindate_vacc = vacc_dates[0]
+    maxdate_vacc = vacc_dates[-1]
+    skipped_dates = [0] * dates.index(mindate_vacc)
+    try:
+        nb_missing_dates = len(dates) - dates.index(maxdate_vacc) - 1
+    except:
+        nb_missing_dates = 0
+    vaccines_arrays = defaultdict(dict)
+    for c in vaccines:
+        for k in ["vaccinated_once", "vaccinated_fully"]:
+            vaccines_arrays[c][k] = skipped_dates + [int(vaccines[c][d][k]) for d in vacc_dates] + [int(vaccines[c][maxdate_vacc][k])] * nb_missing_dates
+
+
 for name, scope in data["scopes"].items():
-    fields = ["confirmed", "deceased"]
+    if name == "World":
+        fields = ["vaccinated_once", "vaccinated_fully", "confirmed", "deceased"]
+    else:
+        fields = ["confirmed", "deceased"]
     if name == "USA":
         #fields.append("tested")
         pass
     elif name != "Canada":
-        fields += ["recovered", "currently_sick"]
+        pass
+        #fields += ["recovered", "currently_sick"]
     scope["values"] = {"total": unit_vals(n_dates, fields)}
     scope["lastUpdate"] = last_usa_update if name == "USA" else last_jhu_update
 
@@ -287,17 +285,24 @@ for name, scope in data["scopes"].items():
                 sick = vals["confirmed"] - vals["recovered"] - vals["deceased"]
                 scope["values"][c]["currently_sick"][i] += sick
                 scope["values"]["total"]["currently_sick"][i] += sick
-
+            if name == "World":
+                if c in vaccines_arrays:
+                    scope["values"][c]["vaccinated_once"][i] = vaccines_arrays[c]["vaccinated_once"][i]
+                    scope["values"]["total"]["vaccinated_once"][i] += vaccines_arrays[c]["vaccinated_once"][i]
+                    scope["values"][c]["vaccinated_fully"][i] = vaccines_arrays[c]["vaccinated_fully"][i]
+                    scope["values"]["total"]["vaccinated_fully"][i] += vaccines_arrays[c]["vaccinated_fully"][i]
 
 france_ehpad = 0
-with open(os.path.join("covid19/data_sources", "chiffres-cles.csv")) as f:
-    for row in csv.DictReader(f):
-        if row["granularite"] == "pays" and row["deces_ehpad"]:
-            try:
-                france_ehpad = int(row["deces_ehpad"])
-            except ValueError:
-                pass
-france_disclaimer = 'France does not release detailed data on tests performed and confirmed: only national (<a href="https://github.com/CSSEGISandData/COVID-19/issues/2094" target="_blank">and</a>&nbsp;<a href="https://www.liberation.fr/checknews/2020/04/05/covid-19-pourquoi-des-sites-evoquent-90-000-cas-en-france-contre-68-000-au-bilan-officiel_1784232" target="_blank">controversial</a>) figures are published. Deaths cases are also only detailed for hospitals: the %s deceased cases in nursing homes are therefore not accounted in this dataset.' % ('{:,}'.format(france_ehpad).replace(',', '&nbsp;'))
+with open(os.path.join("data", "france-ehpad.json")) as f:
+    ehpaddata = json.load(f)
+    while ehpaddata and not france_ehpad:
+        lastdata = ehpaddata.pop(-1)
+        try:
+            france_ehpad = int(lastdata["decesEhpad"])
+            france_ehpad_date = lastdata["date"]
+        except:
+            pass
+france_disclaimer = 'France does not release detailed data on tests performed and confirmed: only national (<a href="https://github.com/CSSEGISandData/COVID-19/issues/2094" target="_blank">and</a>&nbsp;<a href="https://www.liberation.fr/checknews/2020/04/05/covid-19-pourquoi-des-sites-evoquent-90-000-cas-en-france-contre-68-000-au-bilan-officiel_1784232" target="_blank">controversial</a>) figures are published. Deaths cases are also only detailed for hospitals: the %s deceased cases (as of %s) in nursing homes are therefore not accounted in this dataset.' % ('{:,}'.format(france_ehpad).replace(',', '&nbsp;'), france_ehpad_date)
 
 
 localities = {
@@ -322,16 +327,18 @@ localities = {
     },
     "France": {
         "source": {
-          "name": "Santé Publique France (curated by OpenCOVID19-fr)",
-          "url": "https://github.com/opencovid19-fr/data",
+          "name": "Santé Publique France (curated by Etalab)",
+          "url": "https://data.widgets.dashboard.covid19.data.gouv.fr/",
           "disclaimer": france_disclaimer
         },
-        "filename": "chiffres-cles.csv",
+        "filename": "france.csv",
         "level": "department",
         "level_field": "maille_nom",
         "date_accessor": lambda row: row["date"],
-        "filter": lambda row: row["granularite"] == "departement" and row["source_type"] == "sante-publique-france-data",
+        "filter": lambda row: row["granularite"] == "departement" and row["source_type"] in ["sante-publique-france-data", "widgets.dashboard.covid19.data.gouv.fr"],
         "fields": {
+            "vaccinated_once": "vaccines_premiere_dose",
+            "vaccinated_fully": "vaccines_entierement",
             "recovered": "gueris",
             "hospitalized": "hospitalises",
             "intensive_care": "reanimation",
@@ -340,16 +347,18 @@ localities = {
     },
     "France ": {
         "source": {
-          "name": "Santé Publique France (curated by OpenCOVID19-fr)",
-          "url": "https://github.com/opencovid19-fr/data",
+          "name": "Santé Publique France (curated by Etalab)",
+          "url": "https://data.widgets.dashboard.covid19.data.gouv.fr/",
           "disclaimer": france_disclaimer
         },
-        "filename": "chiffres-cles.csv",
+        "filename": "france.csv",
         "level": "region",
         "level_field": "maille_nom",
         "date_accessor": lambda row: row["date"],
-        "filter": lambda row: row["granularite"] == "region" and row["source_type"] == "opencovid19-fr",
+        "filter": lambda row: row["granularite"] == "region" and row["source_type"] in ["opencovid19-fr", "widgets.dashboard.covid19.data.gouv.fr"],
         "fields": {
+            "vaccinated_once": "vaccines_premiere_dose",
+            "vaccinated_fully": "vaccines_entierement",
             "recovered": "gueris",
             "hospitalized": "hospitalises",
             "intensive_care": "reanimation",
@@ -359,26 +368,23 @@ localities = {
     "Spain": {
         "source": {
           "name": "Spain's Ministry of Health",
-          "url": "https://covid19.isciii.es"
+          "url": "https://cnecovid.isciii.es/covid19/",
         },
         "filename": "spain.csv",
-        "encoding": "iso-8859-15",
         "level": "autonom. community",
         "level_field": "CCAA",
-        "date_accessor": lambda row: conv_fr(row["FECHA"]),
-        "filter": lambda row: row["FECHA"] and "/202" in row["FECHA"],
+        "date_accessor": lambda row: row["date"],
         "fields": {
-            "confirmed": "CASOS",
-            #"recovered": "Recuperados",
-            "hospitalized": "Hospitalizados",
-            "intensive_care": "UCI",
-            "deceased": "Fallecidos"
+            "confirmed": "confirmed",
+            "hospitalized": "hospitalized",
+            "intensive_care": "intensive_care",
+            "deceased": "deceased"
         }
     },
     "Germany": {
         "source": {
-          "name": "Robert Koch Institute (curated by Michael Große)",
-          "url": "https://github.com/micgro42/COVID-19-DE"
+          "name": "Robert Koch Institute",
+          "url": "https://npgeo-corona-npgeo-de.hub.arcgis.com/"
         },
         "filename": "germany.csv",
         "level": "bundesländer",
@@ -386,21 +392,25 @@ localities = {
         "date_accessor": lambda row: row["date"],
         "fields": {
             "confirmed": "confirmed",
+            "recovered": "recovered",
             "deceased": "deceased"
         }
     },
     "UK": {
         "source": {
-          "name": "UK NHS (curated by Tom White)",
-          "url": "https://github.com/tomwhite/covid-19-uk-data"
+          "name": "United Kingdom Government",
+          "url": "https://coronavirus.data.gov.uk/"
         },
         "filename": "uk.csv",
         "level": "country",
         "level_field": "country",
         "date_accessor": lambda row: row["date"],
         "fields": {
-            "tested": "tested",
+            "vaccinated_once": "vaccinated_once",
+            "vaccinated_fully": "vaccinated_fully",
             "confirmed": "confirmed",
+            "hospitalized": "hospitalized",
+            "intensive_care": "intensive_care",
             "deceased": "deceased"
         }
     }
@@ -411,7 +421,7 @@ load_populations(localities.keys())
 for scope, metas in localities.items():
     if "filename" not in metas or not metas["filename"]:
         continue
-    fname = os.path.join("covid19/data_sources", metas["filename"])
+    fname = os.path.join("data", metas["filename"])
 
     data["scopes"][scope] = {
         "level": metas["level"],
