@@ -108,7 +108,7 @@ countries = {
 last_jhu_update = 0
 
 for typ in ["confirmed", "recovered", "deceased"]:
-    fname = os.path.join("data", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
+    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_global.csv" % typ.replace("deceased", "deaths"))
     res = last_file_update(fname)
     if last_jhu_update < res:
         last_jhu_update = res
@@ -134,7 +134,7 @@ usa_states = {
 last_usa_update = 0
 
 for typ in ["confirmed", "deceased", "tested"]:
-    fname = os.path.join("data", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths").replace("tested", "testing"))
+    fname = os.path.join("covid19/data_sources", "time_series_covid19_%s_US.csv" % typ.replace("deceased", "deaths").replace("tested", "testing"))
     res = last_file_update(fname)
     if last_usa_update < res:
         last_usa_update = res
@@ -205,7 +205,7 @@ def load_populations(scopes):
     for name in scopes:
         name = name.strip()
         try:
-            with open(os.path.join("data", "population-%s.csv" % name)) as f:
+            with open(os.path.join("covid19/data_sources", "population-%s.csv" % name)) as f:
                 populations[name] = {}
                 for place in csv.DictReader(f):
                     populations[name][place["id"]] = int(place["pop"])
@@ -226,7 +226,7 @@ def unit_vals(ndates, fieldnames, population=0):
     return unit
 
 
-with open(os.path.join("data", "vaccines.json")) as f:
+with open(os.path.join("covid19/data_sources", "vaccines.json")) as f:
     vaccines = json.load(f)
     vacc_dates = sorted(vaccines["France"].keys())
     mindate_vacc = vacc_dates[0]
@@ -293,7 +293,7 @@ for name, scope in data["scopes"].items():
                     scope["values"]["total"]["vaccinated_fully"][i] += vaccines_arrays[c]["vaccinated_fully"][i]
 
 france_ehpad = 0
-with open(os.path.join("data", "france-ehpad.json")) as f:
+with open(os.path.join("covid19/data_sources", "france-ehpad.json")) as f:
     ehpaddata = json.load(f)
     while ehpaddata and not france_ehpad:
         lastdata = ehpaddata.pop(-1)
@@ -421,7 +421,7 @@ load_populations(localities.keys())
 for scope, metas in localities.items():
     if "filename" not in metas or not metas["filename"]:
         continue
-    fname = os.path.join("data", metas["filename"])
+    fname = os.path.join("covid19/data_sources", metas["filename"])
 
     data["scopes"][scope] = {
         "level": metas["level"],

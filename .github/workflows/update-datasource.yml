@@ -2,7 +2,7 @@ name: Auto Update Process
 
 on:
   schedule:
-    - cron:  '0 */6 * * *'  
+    - cron:  '*/20 * * * *'
 
 jobs:
   update:
@@ -15,18 +15,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      #- name: Run sample
-        #run: sh ./bin/sample.sh
-        
       - name: Update Sources
-        run: bash ./bin/update_sources.sh #start, if it refused, then ignore...
+        run: bash ./bin/update_sources.sh
   
       - name: Commit Sources Data
         run: |
-          if git diff --name-only covid19/data_sources/*.csv | grep . ; then
+          if git diff --name-only covid19/data_sources/*.csv covid19/data_sources/france-*.json covid19/data_sources/vaccines.json | grep . ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
-            git commit -m "update sources data" covid19/data_sources/*.csv
+            git commit -m "update sources data" covid19/data_sources/*.csv covid19/data_sources/france-*.json covid19/data_sources/vaccines.json
           fi
   
       - name: Build Viz Data
@@ -34,7 +31,7 @@ jobs:
   
       - name: Commit & Push Viz Data
         run: |
-          if git diff covid19/data_sources/*.json | grep . > /dev/null ; then
+          if git diff covid19/data_sources/coronavirus-countries.json | grep . > /dev/null ; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update viz data" covid19/data_sources/coronavirus-countries.json
