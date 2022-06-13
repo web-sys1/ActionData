@@ -34,7 +34,7 @@ jobs:
       - name: Commit Repo & Push Data
         run: |
           if git diff covid19/data_sources/coronavirus-countries.json | grep . > /dev/null ; then
-            git pull origin master
+            git pull
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update viz data" covid19/data_sources/coronavirus-countries.json
