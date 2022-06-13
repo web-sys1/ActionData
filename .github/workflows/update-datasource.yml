@@ -2,7 +2,7 @@ name: Auto Update Process
 
 on:
   push:
-     branches: [ main ]
+     branches: [ master ]
   schedule:
     - cron:  '*/20 * * * *'
 
