@@ -31,7 +31,7 @@ jobs:
       - name: Build Viz Data
         run: python ./bin/export-main-countries.py
   
-      - name: Commit & Push Viz Data
+      - name: Commit Repo & Push Data
         run: |
           if git diff covid19/data_sources/coronavirus-countries.json | grep . > /dev/null ; then
             git config --local user.email "action@github.com"
