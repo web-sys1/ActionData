@@ -26,6 +26,7 @@ jobs:
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git commit -m "update sources data" covid19/data_sources/*.csv covid19/data_sources/france-*.json covid19/data_sources/vaccines.json
+            git config pull.rebase false
           fi
   
       - name: Build Viz Data
